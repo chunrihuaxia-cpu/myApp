@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="AI训练师刷题">
+    <meta name="theme-color" content="#007AFF">
+    <title>AI训练师 · 刷题</title>
+    <link rel="manifest" href="manifest.json">
+    <link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' width='180' height='180'><rect width='180' height='180' rx='36' fill='%23007AFF'/><text x='90' y='115' font-size='80' text-anchor='middle' fill='white'>📝</text></svg>">
+    <style>
+        :root {
+            --blue: #007AFF;
+            --green: #34C759;
+            --red: #FF3B30;
+            --orange: #FF9500;
+            --bg: #F2F2F7;
+            --card: #FFFFFF;
+            --text: #000000;
+            --text2: #8E8E93;
+            --sep: #E5E5EA;
+            --radius: 14px;
+            --safe-bottom: env(safe-area-inset-bottom, 0px);
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'PingFang SC', sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            -webkit-tap-highlight-color: transparent;
+            -webkit-font-smoothing: antialiased;
+            min-height: 100vh;
+            padding-bottom: calc(100px + var(--safe-bottom));
+            user-select: none;
+            -webkit-user-select: none;
+        }
+
+        /* Header */
+        .header {
+            background: var(--card);
+            padding: 12px 20px;
+            padding-top: calc(12px + env(safe-area-inset-top, 0px));
+            position: sticky; top:0; z-index: 100;
+            border-bottom: 1px solid var(--sep);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+        }
+        .header h1 { font-size: 20px; font-weight: 700; text-align: center; }
+        .header .sub { font-size: 12px; color: var(--text2); text-align: center; margin-top:2px; }
+
+        /* Mode Tabs */
+        .mode-tabs {
+            display: flex; gap: 8px; padding: 12px 16px;
+            overflow-x: auto; -webkit-overflow-scrolling: touch;
+        }
+        .mode-tab {
+            flex-shrink: 0;
+            padding: 8px 16px; border-radius: 20px;
+            font-size: 14px; font-weight: 600;
+            background: var(--card); color: var(--text2);
+            border: none; cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+        .mode-tab.active {
+            background: var(--blue); color: white;
+        }
+
+        /* Stats Bar */
+        .stats {
+            display: flex; gap: 12px; padding: 0 16px 12px;
+            font-size: 13px; color: var(--text2);
+            align-items: center;
+        }
+        .stats .score { color: var(--green); font-weight: 700; font-size: 16px; }
+        .stats .wrong { color: var(--red); }
+        .progress-bar {
+            flex:1; height: 6px; background: var(--sep); border-radius: 3px;
+            overflow: hidden;
+        }
+        .progress-bar .fill {
+            height: 100%; background: var(--blue); border-radius: 3px;
+            transition: width 0.3s;
+        }
+        .shuffle-btn {
+            font-size: 12px; padding: 6px 12px; border-radius: 14px;
+            border: 1px solid var(--sep); background: var(--card);
+            cursor: pointer; font-weight: 600;
+        }
+        .shuffle-btn.on { background: var(--blue); color: white; border-color: var(--blue); }
+
+        /* Question Card */
+        .card {
+            background: var(--card); border-radius: var(--radius);
+            margin: 0 16px 16px; padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.04);
+        }
+        .q-type-badge {
+            display: inline-block;
+            padding: 3px 10px; border-radius: 10px;
+            font-size: 11px; font-weight: 700; margin-bottom: 10px;
+        }
+        .badge-judge { background: #E8F5FF; color: #007AFF; }
+        .badge-single { background: #FFF3E0; color: #FF9500; }
+        .badge-multi  { background: #F3E8FF; color: #AF52DE; }
+
+        .q-number { font-size: 13px; color: var(--text2); margin-bottom: 8px; }
+        .q-text {
+            font-size: 17px; line-height: 1.6; font-weight: 500;
+            margin-bottom: 20px;
+        }
+
+        /* Options */
+        .options { display: flex; flex-direction: column; gap: 10px; }
+        .opt-btn {
+            display: flex; align-items: center; gap: 12px;
+            width: 100%; padding: 14px 16px; border-radius: 12px;
+            border: 2px solid var(--sep); background: var(--card);
+            font-size: 16px; text-align: left; cursor: pointer;
+            transition: all 0.15s;
+            font-family: inherit;
+        }
+        .opt-btn:active { transform: scale(0.98); background: #F2F2F7; }
+        .opt-label {
+            width: 32px; height: 32px; border-radius: 50%;
+            background: #F2F2F7; display: flex; align-items: center;
+            justify-content: center; font-weight: 700; font-size: 14px;
+            flex-shrink: 0;
+        }
+        .opt-text { flex:1; }
+
+        /* Judge buttons */
+        .judge-btns { display: flex; gap: 12px; }
+        .judge-btn {
+            flex:1; padding: 18px; border-radius: 14px;
+            font-size: 20px; font-weight: 700; border: none;
+            cursor: pointer; transition: all 0.15s;
+            font-family: inherit; color: white;
+        }
+        .judge-btn:active { transform: scale(0.96); }
+        .judge-true  { background: var(--green); }
+        .judge-false { background: var(--red); }
+
+        /* Multi submit */
+        .submit-btn {
+            width: 100%; padding: 16px; border-radius: 14px;
+            background: var(--blue); color: white; font-size: 18px;
+            font-weight: 700; border: none; cursor: pointer;
+            margin-top: 12px; font-family: inherit;
+        }
+        .submit-btn:active { opacity: 0.8; }
+        .submit-btn:disabled { background: #CCC; }
+
+        /* Answer states */
+        .opt-btn.correct {
+            border-color: var(--green); background: #E8F8ED;
+        }
+        .opt-btn.correct .opt-label { background: var(--green); color: white; }
+        .opt-btn.wrong {
+            border-color: var(--red); background: #FFECEB;
+        }
+        .opt-btn.wrong .opt-label { background: var(--red); color: white; }
+        .opt-btn.reveal {
+            border-color: var(--green); background: #E8F8ED;
+        }
+        .opt-btn.reveal .opt-label { background: var(--green); color: white; }
+        .opt-btn.selected {
+            border-color: var(--blue); background: #E8F5FF;
+        }
+        .opt-btn.selected .opt-label { background: var(--blue); color: white; }
+
+        .judge-btn.correct-ans { outline: 3px solid #007AFF; outline-offset: 2px; }
+        .judge-btn.wrong-ans { opacity: 0.5; }
+
+        /* Explanation */
+        .explanation {
+            margin-top: 16px; padding: 16px; border-radius: 12px;
+            background: #FFF9E8; border: 1px solid #FFE8A0;
+            font-size: 14px; line-height: 1.6;
+            animation: slideUp 0.3s ease;
+        }
+        .explanation .label {
+            font-weight: 700; font-size: 12px; color: var(--orange);
+            margin-bottom: 4px; text-transform: uppercase; letter-spacing: 1px;
+        }
+        .explanation .correct-answer {
+            font-weight: 700; color: var(--green); margin-bottom: 6px;
+        }
+
+        .next-btn {
+            width: 100%; padding: 14px; border-radius: 12px;
+            background: var(--blue); color: white; font-size: 16px;
+            font-weight: 700; border: none; cursor: pointer;
+            margin-top: 12px; font-family: inherit;
+        }
+        .next-btn:active { opacity: 0.8; }
+
+        @keyframes slideUp {
+            from { opacity:0; transform: translateY(10px); }
+            to   { opacity:1; transform: translateY(0); }
+        }
+        @keyframes correctPulse {
+            0% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+            100% { transform: scale(1); }
+        }
+        .pulse { animation: correctPulse 0.4s ease; }
+
+        /* Bottom nav / empty state */
+        .empty {
+            text-align: center; padding: 60px 20px; color: var(--text2);
+        }
+        .empty .icon { font-size: 60px; margin-bottom: 16px; }
+        .empty h2 { font-size: 20px; margin-bottom: 8px; color: var(--text); }
+        .empty p { font-size: 14px; line-height: 1.5; }
+
+        /* Loading */
+        .loading {
+            display: flex; flex-direction: column; align-items: center;
+            justify-content: center; height: 60vh; gap: 16px; color: var(--text2);
+        }
+        .spinner {
+            width: 36px; height: 36px; border: 3px solid var(--sep);
+            border-top-color: var(--blue); border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* Toast */
+        .toast {
+            position: fixed; top: 80px; left: 50%; transform: translateX(-50%);
+            padding: 10px 24px; border-radius: 20px; font-size: 14px; font-weight: 700;
+            color: white; z-index: 200; pointer-events: none;
+            animation: fadeIn 0.3s ease;
+            background: var(--green);
+        }
+        .toast.error { background: var(--red); }
+        @keyframes fadeIn { from { opacity:0; transform: translateX(-50%) translateY(-10px); } }
+        .hidden { display: none !important; }
+
+        /* Dashboard */
+        .dash-row {
+            background: var(--bg); border-radius: 12px; padding: 14px; margin-bottom: 10px;
+        }
+        .dash-row .dash-header {
+            display: flex; justify-content: space-between; align-items: center;
+            margin-bottom: 8px;
+        }
+        .dash-row .dash-title { font-weight: 700; font-size: 15px; }
+        .dash-row .dash-stat { font-size: 12px; color: var(--text2); }
+        .dash-row .dash-bar {
+            height: 6px; background: #E5E5EA; border-radius: 3px; overflow: hidden;
+            margin-bottom: 8px;
+        }
+        .dash-row .dash-bar-fill {
+            height: 100%; border-radius: 3px; transition: width 0.5s;
+        }
+        .dash-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+        .dash-btn {
+            padding: 7px 14px; border-radius: 16px; font-size: 13px; font-weight: 600;
+            border: none; cursor: pointer; font-family: inherit;
+        }
+        .dash-btn.primary { background: var(--blue); color: white; }
+        .dash-btn.secondary { background: var(--card); color: var(--text); border: 1px solid var(--sep); }
+        .dash-btn.warn { background: var(--red); color: white; }
+        .dash-jump {
+            display: flex; align-items: center; gap: 4px;
+        }
+        .dash-jump input {
+            width: 52px; padding: 6px 8px; border-radius: 12px;
+            border: 1px solid var(--sep); font-size: 13px; text-align: center;
+            font-family: inherit; -webkit-appearance: none;
+        }
+        .dash-jump span { font-size: 12px; color: var(--text2); }
+
+        /* Jump overlay */
+        .jump-overlay {
+            position: fixed; top:0; left:0; right:0; bottom:0;
+            background: rgba(0,0,0,0.4); z-index: 300;
+            display: flex; align-items: center; justify-content: center;
+            animation: fadeIn 0.2s ease;
+        }
+        .jump-dialog {
+            background: var(--card); border-radius: 16px; padding: 24px;
+            width: 280px; text-align: center;
+        }
+        .jump-dialog h3 { margin-bottom: 4px; font-size: 18px; }
+        .jump-dialog p { font-size: 13px; color: var(--text2); margin-bottom: 16px; }
+        .jump-dialog input {
+            width: 100%; padding: 12px; border-radius: 12px;
+            border: 2px solid var(--sep); font-size: 24px; text-align: center;
+            font-family: inherit; font-weight: 700; margin-bottom: 16px;
+            -webkit-appearance: none;
+        }
+        .jump-dialog .jump-actions { display: flex; gap: 8px; }
+        .jump-dialog .jump-actions button { flex:1; }
+    </style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+    <h1>📝 AI训练师 · 刷题</h1>
+    <div class="sub">人工智能训练师（三级）理论知识</div>
+</div>
+
+<!-- Mode Tabs -->
+<div class="mode-tabs" id="modeTabs">
+    <button class="mode-tab active" data-mode="all">全部 (900)</button>
+    <button class="mode-tab" data-mode="judge">判断题 (300)</button>
+    <button class="mode-tab" data-mode="single">单选题 (300)</button>
+    <button class="mode-tab" data-mode="multi">多选题 (300)</button>
+</div>
+
+<!-- Stats -->
+<div class="stats">
+    <span id="progressText">第 1/900 题</span>
+    <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
+    <span class="score" id="scoreText">0%</span>
+    <span class="wrong" id="wrongText"></span>
+    <button class="shuffle-btn" id="shuffleBtn" onclick="toggleShuffle()">🔀 乱序</button>
+    <button class="shuffle-btn" onclick="showJumpDialog()" title="跳转到指定题号">⏭ 跳转</button>
+    <button class="shuffle-btn hidden" id="wrongBookBtn" onclick="openWrongBook()" style="background:var(--red);color:white;border-color:var(--red);">📋 错题本</button>
+</div>
+
+<!-- Content Area -->
+<div id="app"></div>
+
+<!-- Toast -->
+<div id="toast" class="toast hidden"></div>
+
+<script>
+// ── State ──
+let allQuestions = [];
+let currentQuestions = [];  // filtered/shuffled list
+let currentIndex = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let answered = false;
+let shuffleMode = false;
+let currentMode = 'all';
+let wrongQuestionIds = [];  // Track wrong answers in current session
+let inReview = false;       // True when reviewing wrong-book / session-wrong (don't save session)
+
+// ── Persistent wrong-answer storage ──
+let savedWrongIds = [];  // Persisted across sessions
+try {
+    savedWrongIds = JSON.parse(localStorage.getItem('wrongBook') || '[]');
+} catch(e) { savedWrongIds = []; }
+
+function saveWrongBook() {
+    try { localStorage.setItem('wrongBook', JSON.stringify(savedWrongIds)); } catch(e) {}
+    updateWrongBadge();
+}
+
+function addToWrongBook(qid) {
+    if (!savedWrongIds.includes(qid)) {
+        savedWrongIds.push(qid);
+        saveWrongBook();
+    }
+}
+
+function removeFromWrongBook(qid) {
+    const idx = savedWrongIds.indexOf(qid);
+    if (idx >= 0) {
+        savedWrongIds.splice(idx, 1);
+        saveWrongBook();
+    }
+}
+
+// ── Session Persistence (resume mid-session) ──
+const SESSION_KEY = 'quizSession';
+
+function saveSession() {
+    if (inReview) return;  // Don't save review sessions
+    const state = {
+        mode: currentMode,
+        shuffle: shuffleMode,
+        order: shuffleMode ? currentQuestions.map(q => q.id) : null,
+        index: currentIndex,
+        correct: correctCount,
+        wrong: wrongCount,
+        wrongIds: wrongQuestionIds,
+    };
+    try { localStorage.setItem(SESSION_KEY, JSON.stringify(state)); } catch(e) {}
+}
+
+function loadSession() {
+    try {
+        const raw = localStorage.getItem(SESSION_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw);
+    } catch(e) { return null; }
+}
+
+function clearSession() {
+    try { localStorage.removeItem(SESSION_KEY); } catch(e) {}
+}
+
+function restoreSession(state) {
+    currentMode = state.mode;
+    shuffleMode = state.shuffle;
+
+    // Rebuild question list
+    let qs = [...allQuestions];
+    if (currentMode !== 'all') {
+        qs = qs.filter(q => q.type === currentMode);
+    }
+    if (state.order) {
+        // Restore shuffled order
+        const orderMap = {};
+        state.order.forEach((id, i) => { orderMap[id] = i; });
+        qs.sort((a, b) => (orderMap[a.id] || 0) - (orderMap[b.id] || 0));
+    } else if (currentMode === 'all') {
+        // Natural order: sort by type then number
+        const typeOrder = { judge: 0, single: 1, multi: 2 };
+        qs.sort((a, b) => (typeOrder[a.type] - typeOrder[b.type]) || (a.number - b.number));
+    } else {
+        qs.sort((a, b) => a.number - b.number);
+    }
+
+    currentQuestions = qs;
+    currentIndex = state.index;
+    correctCount = state.correct;
+    wrongCount = state.wrong;
+    wrongQuestionIds = state.wrongIds || [];
+    answered = false;
+
+    // Update UI
+    document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+    const targetTab = document.querySelector(`.mode-tab[data-mode="${currentMode}"]`);
+    if (targetTab) targetTab.classList.add('active');
+    document.getElementById('shuffleBtn').classList.toggle('on', shuffleMode);
+    try { localStorage.setItem('shuffleMode', shuffleMode ? '1' : '0'); } catch(e) {}
+}
+
+// ── Per-Type Progress Tracking ──
+const PROGRESS_KEY = 'typeProgress';
+
+function loadTypeProgress() {
+    try {
+        const raw = localStorage.getItem(PROGRESS_KEY);
+        if (!raw) return { all:{i:0,c:0,w:0}, judge:{i:0,c:0,w:0}, single:{i:0,c:0,w:0}, multi:{i:0,c:0,w:0} };
+        const data = JSON.parse(raw);
+        // Ensure all keys exist (migration)
+        for (const k of ['all','judge','single','multi']) {
+            if (!data[k]) data[k] = {i:0,c:0,w:0};
+        }
+        return data;
+    } catch(e) { return { all:{i:0,c:0,w:0}, judge:{i:0,c:0,w:0}, single:{i:0,c:0,w:0}, multi:{i:0,c:0,w:0} }; }
+}
+
+function saveTypeProgress(prog) {
+    try { localStorage.setItem(PROGRESS_KEY, JSON.stringify(prog)); } catch(e) {}
+}
+
+function updateTypeProgress() {
+    if (inReview) return;
+    const prog = loadTypeProgress();
+    const p = prog[currentMode];
+    p.i = currentIndex;
+    p.c = correctCount;
+    p.w = wrongCount;
+    saveTypeProgress(prog);
+}
+
+function resetTypeProgress(mode) {
+    const prog = loadTypeProgress();
+    if (mode) {
+        prog[mode] = {i:0,c:0,w:0};
+    } else {
+        for (const k of ['all','judge','single','multi']) prog[k] = {i:0,c:0,w:0};
+    }
+    saveTypeProgress(prog);
+}
+
+// ── DOM refs ──
+const app = document.getElementById('app');
+const toast = document.getElementById('toast');
+const progressText = document.getElementById('progressText');
+const progressFill = document.getElementById('progressFill');
+const scoreText = document.getElementById('scoreText');
+const wrongText = document.getElementById('wrongText');
+
+// ── Load Data ──
+app.innerHTML = '<div class="loading"><div class="spinner"></div><div>正在加载题库…</div></div>';
+
+function getTypeLabel(mode) {
+    const labels = { all: '全部', judge: '判断题', single: '单选题', multi: '多选题' };
+    return labels[mode] || '全部';
+}
+
+fetch('question_bank.json')
+    .then(r => r.json())
+    .then(bank => {
+        allQuestions = bank.questions;
+        updateWrongBadge();
+
+        const saved = loadSession();
+        const hasUnfinished = saved && saved.index > 0 && saved.index < (saved.order ? saved.order.length : getModeCount(saved.mode));
+
+        if (hasUnfinished) {
+            window._savedSession = saved;
+        } else {
+            clearSession();
+        }
+
+        renderDashboard(hasUnfinished);
+    })
+    .catch(err => {
+        app.innerHTML = `<div class="empty"><div class="icon">⚠️</div><h2>加载失败</h2><p>请确保 question_bank.json 文件在同一目录下</p><p style="margin-top:8px;font-size:12px;color:var(--text2)">${err.message}</p></div>`;
+    });
+
+function getModeCount(mode) {
+    if (mode === 'all') return allQuestions.length;
+    return allQuestions.filter(q => q.type === mode).length;
+}
+
+// ── Progress Dashboard ──
+function renderDashboard(hasUnfinished) {
+    const prog = loadTypeProgress();
+    const typeConfigs = [
+        { mode: 'all',   icon: '📚', title: '全部',    color: '#007AFF' },
+        { mode: 'judge', icon: '📝', title: '判断题',  color: '#34C759' },
+        { mode: 'single',icon: '📋', title: '单选题',  color: '#FF9500' },
+        { mode: 'multi', icon: '📑', title: '多选题',  color: '#AF52DE' },
+    ];
+
+    let rows = '';
+    for (const cfg of typeConfigs) {
+        const p = prog[cfg.mode];
+        const total = getModeCount(cfg.mode);
+        const answered = p.c + p.w;
+        const pct = total > 0 ? Math.round(answered / total * 100) : 0;
+        const rate = answered > 0 ? Math.round(p.c / answered * 100) : 0;
+        const hasProgress = answered > 0;
+
+        // Check if there's an unfinished session for this mode
+        const saved = window._savedSession;
+        const isUnfinishedSession = hasUnfinished && saved && saved.mode === cfg.mode;
+
+        let actionHtml = '';
+        if (isUnfinishedSession) {
+            const savedTotal = saved.order ? saved.order.length : total;
+            const savedDone = saved.correct + saved.wrong;
+            actionHtml = `
+                <button class="dash-btn primary" onclick="resumeSession()">📍 继续 (${savedDone}/${savedTotal})</button>
+                <button class="dash-btn secondary" onclick="discardSessionAndStart('${cfg.mode}')">🆕 重刷</button>
+                <div class="dash-jump">
+                    <span>从第</span><input type="number" id="jump_${cfg.mode}" min="1" max="${total}" value="${savedDone + 1}" onfocus="this.select()"><span>题开始</span>
+                    <button class="dash-btn secondary" onclick="jumpToMode('${cfg.mode}')">GO</button>
+                </div>`;
+        } else if (hasProgress && answered < total) {
+            actionHtml = `
+                <button class="dash-btn primary" onclick="resumeTypeProgress('${cfg.mode}')">📍 继续 (${answered}/${total})</button>
+                <button class="dash-btn secondary" onclick="resetAndStart('${cfg.mode}')">🆕 重刷</button>
+                <div class="dash-jump">
+                    <span>从第</span><input type="number" id="jump_${cfg.mode}" min="1" max="${total}" value="${answered + 1}" onfocus="this.select()"><span>题开始</span>
+                    <button class="dash-btn secondary" onclick="jumpToMode('${cfg.mode}')">GO</button>
+                </div>`;
+        } else {
+            actionHtml = `
+                <button class="dash-btn primary" onclick="resetAndStart('${cfg.mode}')">▶ 开始刷题</button>
+                <div class="dash-jump">
+                    <span>从第</span><input type="number" id="jump_${cfg.mode}" min="1" max="${total}" value="1" onfocus="this.select()"><span>题开始</span>
+                    <button class="dash-btn secondary" onclick="jumpToMode('${cfg.mode}')">GO</button>
+                </div>`;
+        }
+
+        rows += `
+        <div class="dash-row">
+            <div class="dash-header">
+                <span class="dash-title">${cfg.icon} ${cfg.title}</span>
+                <span class="dash-stat">${hasProgress ? `正确 <b style="color:var(--green)">${p.c}</b> · 错误 <b style="color:var(--red)">${p.w}</b> · 正确率 <b>${rate}%</b>` : '尚未开始'}</span>
+            </div>
+            <div class="dash-bar">
+                <div class="dash-bar-fill" style="width:${pct}%;background:${cfg.color};"></div>
+            </div>
+            <div class="dash-actions">${actionHtml}</div>
+        </div>`;
+    }
+
+    // Wrong book count
+    const wrongBookInfo = savedWrongIds.length > 0
+        ? `<div class="dash-row" style="text-align:center;">
+            <span style="font-size:15px;font-weight:700;">📋 错题本：<b style="color:var(--red)">${savedWrongIds.length}</b> 题待复习</span>
+            <div class="dash-actions" style="justify-content:center;margin-top:6px;">
+                <button class="dash-btn warn" onclick="openWrongBook()">复习错题</button>
+            </div>
+        </div>`
+        : '';
+
+    app.innerHTML = `
+    <div class="card" style="text-align:center;padding:20px;margin-bottom:8px;">
+        <h2 style="margin-bottom:4px;">📊 刷题进度</h2>
+        <p style="font-size:13px;color:var(--text2);">选择一种题型开始刷题，或继续之前的进度</p>
+    </div>
+    <div style="padding:0 16px;">
+        ${rows}
+        ${wrongBookInfo}
+    </div>`;
+
+    // Store for jump handlers
+    window._dashboardProg = prog;
+}
+
+// ── Dashboard Actions ──
+function resumeSession() {
+    const saved = window._savedSession;
+    if (!saved) return;
+    window._savedSession = null;
+    restoreSession(saved);
+    updateStats();
+    render();
+}
+
+function discardSessionAndStart(mode) {
+    window._savedSession = null;
+    clearSession();
+    switchModeAndGo(mode, 1);
+}
+
+function resumeTypeProgress(mode) {
+    clearSession();
+    const prog = loadTypeProgress();
+    const p = prog[mode];
+    const startIdx = p.i;
+    switchModeAndGo(mode, startIdx + 1);
+}
+
+function resetAndStart(mode) {
+    clearSession();
+    resetTypeProgress(mode);
+    switchModeAndGo(mode, 1);
+}
+
+function jumpToMode(mode) {
+    const input = document.getElementById('jump_' + mode);
+    if (!input) return;
+    let num = parseInt(input.value);
+    const total = getModeCount(mode);
+    if (isNaN(num) || num < 1) num = 1;
+    if (num > total) num = total;
+    clearSession();
+    switchModeAndGo(mode, num);
+}
+
+function switchModeAndGo(mode, startNum) {
+    currentMode = mode;
+    shuffleMode = false;
+    document.getElementById('shuffleBtn').classList.remove('on');
+    try { localStorage.setItem('shuffleMode', '0'); } catch(e) {}
+    filterQuestions();
+    if (startNum > 1 && startNum <= currentQuestions.length) {
+        currentIndex = startNum - 1;
+        correctCount = 0;
+        wrongCount = 0;
+        wrongQuestionIds = [];
+    }
+    updateStats();
+    render();
+}
+
+// ── Jump Dialog (during practice) ──
+function showJumpDialog() {
+    const total = currentQuestions.length;
+    const current = currentIndex + 1;
+    const overlay = document.createElement('div');
+    overlay.className = 'jump-overlay';
+    overlay.id = 'jumpOverlay';
+    overlay.innerHTML = `
+    <div class="jump-dialog">
+        <h3>⏭ 跳转题目</h3>
+        <p>当前第 ${current} / ${total} 题</p>
+        <input type="number" id="jumpInput" min="1" max="${total}" value="${current}" onfocus="this.select()">
+        <div class="jump-actions">
+            <button class="dash-btn secondary" onclick="document.getElementById('jumpOverlay').remove()">取消</button>
+            <button class="dash-btn primary" onclick="doJump()">跳转</button>
+        </div>
+    </div>`;
+    document.body.appendChild(overlay);
+    setTimeout(() => document.getElementById('jumpInput').focus(), 100);
+    overlay.addEventListener('click', (e) => { if (e.target === overlay) overlay.remove(); });
+}
+
+function doJump() {
+    const input = document.getElementById('jumpInput');
+    const overlay = document.getElementById('jumpOverlay');
+    if (!input || !overlay) return;
+    let num = parseInt(input.value);
+    const total = currentQuestions.length;
+    if (isNaN(num) || num < 1) num = 1;
+    if (num > total) num = total;
+    overlay.remove();
+    // Reset current session counts for the jump
+    currentIndex = num - 1;
+    correctCount = 0;
+    wrongCount = 0;
+    wrongQuestionIds = [];
+    answered = false;
+    selectedMulti.clear();
+    updateStats();
+    render();
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+// ── Filter & Shuffle ──
+function filterQuestions() {
+    let qs = [...allQuestions];
+    if (currentMode !== 'all') {
+        qs = qs.filter(q => q.type === currentMode);
+    }
+    if (shuffleMode) {
+        // Fisher-Yates shuffle
+        for (let i = qs.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [qs[i], qs[j]] = [qs[j], qs[i]];
+        }
+    }
+    currentQuestions = qs;
+    currentIndex = 0;
+    correctCount = 0;
+    wrongCount = 0;
+    answered = false;
+    wrongQuestionIds = [];
+    inReview = false;
+    clearSession();
+}
+
+function toggleShuffle() {
+    shuffleMode = !shuffleMode;
+    document.getElementById('shuffleBtn').classList.toggle('on', shuffleMode);
+    try { localStorage.setItem('shuffleMode', shuffleMode ? '1' : '0'); } catch(e) {}
+    filterQuestions();
+    updateStats();
+    render();
+}
+
+// Restore shuffle preference
+try { shuffleMode = localStorage.getItem('shuffleMode') === '1'; } catch(e) {}
+if (shuffleMode) {
+    setTimeout(() => {
+        document.getElementById('shuffleBtn').classList.add('on');
+    }, 100);
+}
+
+// ── Mode Switch ──
+document.getElementById('modeTabs').addEventListener('click', (e) => {
+    if (e.target.classList.contains('mode-tab')) {
+        document.querySelectorAll('.mode-tab').forEach(b => b.classList.remove('active'));
+        e.target.classList.add('active');
+        currentMode = e.target.dataset.mode;
+        filterQuestions();
+        updateStats();
+        render();
+    }
+});
+
+// ── Render ──
+function render() {
+    selectedMulti.clear();
+    if (currentQuestions.length === 0) {
+        app.innerHTML = '<div class="empty"><div class="icon">✅</div><h2>没有题目</h2><p>该分类下暂无题目</p></div>';
+        return;
+    }
+    if (currentIndex >= currentQuestions.length) {
+        renderComplete();
+        return;
+    }
+
+    const q = currentQuestions[currentIndex];
+    answered = false;
+    updateStats();
+
+    let html = '';
+    if (q.type === 'judge') {
+        html = renderJudge(q);
+    } else if (q.type === 'single') {
+        html = renderSingle(q);
+    } else if (q.type === 'multi') {
+        html = renderMulti(q);
+    }
+
+    app.innerHTML = html;
+    app.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function renderJudge(q) {
+    return `
+    <div class="card" id="questionCard">
+        <span class="q-type-badge badge-judge">判断题</span>
+        <div class="q-number">第 ${q.number} 题</div>
+        <div class="q-text">${q.question}</div>
+        <div class="judge-btns">
+            <button class="judge-btn judge-true" onclick="answerJudge('正确', this)">✓ 正确</button>
+            <button class="judge-btn judge-false" onclick="answerJudge('错误', this)">✗ 错误</button>
+        </div>
+        <div id="explanationArea"></div>
+    </div>`;
+}
+
+function renderSingle(q) {
+    let opts = '';
+    q.options.forEach((o, i) => {
+        opts += `
+        <button class="opt-btn" onclick="answerSingle('${o.label}', this)" data-label="${o.label}">
+            <span class="opt-label">${o.label}</span>
+            <span class="opt-text">${o.text}</span>
+        </button>`;
+    });
+    return `
+    <div class="card" id="questionCard">
+        <span class="q-type-badge badge-single">单选题</span>
+        <div class="q-number">第 ${q.number} 题</div>
+        <div class="q-text">${q.question}</div>
+        <div class="options">${opts}</div>
+        <div id="explanationArea"></div>
+    </div>`;
+}
+
+function renderMulti(q) {
+    let opts = '';
+    q.options.forEach((o, i) => {
+        opts += `
+        <button class="opt-btn" onclick="toggleMultiOption(this)" data-label="${o.label}">
+            <span class="opt-label">${o.label}</span>
+            <span class="opt-text">${o.text}</span>
+        </button>`;
+    });
+    return `
+    <div class="card" id="questionCard">
+        <span class="q-type-badge badge-multi">多选题</span>
+        <div class="q-number">第 ${q.number} 题</div>
+        <div class="q-text">${q.question}</div>
+        <div class="options">${opts}</div>
+        <button class="submit-btn" id="multiSubmitBtn" onclick="answerMulti()">确认提交</button>
+        <div id="explanationArea"></div>
+    </div>`;
+}
+
+function renderComplete() {
+    const total = currentQuestions.length;
+    const rate = total > 0 ? Math.round(correctCount / total * 100) : 0;
+    let emoji = '🎉';
+    if (rate >= 90) emoji = '🏆';
+    else if (rate >= 70) emoji = '👍';
+    else if (rate < 50) emoji = '💪';
+
+    const sessionWrongCount = wrongQuestionIds.length;
+    const savedWrongCount = savedWrongIds.length;
+
+    let actionBtns = `
+        <button class="submit-btn" style="max-width:260px;margin:8px auto;" onclick="restart()">🔄 重新开始（${currentMode === 'all' ? '全部' : currentMode === 'judge' ? '判断' : currentMode === 'single' ? '单选' : '多选'}）</button>
+    `;
+    if (sessionWrongCount > 0) {
+        actionBtns += `
+        <button class="submit-btn" style="max-width:260px;margin:8px auto;background:var(--orange);" onclick="reviewWrong()">🔍 复习本轮错题 (${sessionWrongCount})</button>
+        `;
+    }
+    if (savedWrongCount > 0) {
+        actionBtns += `
+        <button class="submit-btn" style="max-width:260px;margin:8px auto;background:var(--red);" onclick="openWrongBook()">📋 错题本 (${savedWrongCount}题)</button>
+        <button class="submit-btn" style="max-width:260px;margin:8px auto;background:#CCC;color:#666;font-size:13px;" onclick="clearWrongBook()">🗑 清空错题本</button>
+        `;
+    }
+
+    app.innerHTML = `
+    <div class="empty">
+        <div class="icon">${emoji}</div>
+        <h2>本轮完成！</h2>
+        <p>正确：<b>${correctCount}</b> 题 &nbsp;|&nbsp; 错误：<b>${wrongCount}</b> 题</p>
+        <p>正确率：<b style="font-size:32px;color:var(--green)">${rate}%</b></p>
+        <p style="font-size:13px;margin-top:4px;">📋 错题本累计：<b>${savedWrongCount}</b> 题</p>
+        <br>
+        ${actionBtns}
+    </div>`;
+}
+
+function updateStats() {
+    const total = currentQuestions.length;
+    const answered_count = correctCount + wrongCount;
+    progressText.textContent = total > 0 ? `第 ${Math.min(answered_count + 1, total)}/${total} 题` : '0/0';
+    progressFill.style.width = total > 0 ? `${Math.min(answered_count / total * 100, 100)}%` : '0%';
+
+    const rate = answered_count > 0 ? Math.round(correctCount / answered_count * 100) : 0;
+    scoreText.textContent = rate + '%';
+    wrongText.textContent = wrongCount > 0 ? `错${wrongCount}` : '';
+}
+
+// ── Answer Handling ──
+let selectedMulti = new Set();
+
+function handleCorrect(q) {
+    correctCount++;
+    // Remove from wrong book if previously wrong
+    removeFromWrongBook(q.id);
+    updateStats();
+    saveSession();
+    updateTypeProgress();
+    showToast('✓ 正确！', false);
+    // Briefly highlight, then auto-advance
+    setTimeout(() => {
+        currentIndex++;
+        selectedMulti.clear();
+        updateTypeProgress();
+        if (currentIndex >= currentQuestions.length) {
+            if (!inReview) { clearSession(); resetTypeProgress(currentMode); }
+            renderComplete();
+        } else {
+            saveSession();
+            render();
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    }, 800);
+}
+
+function handleWrong(q, correctAns, userAns) {
+    wrongCount++;
+    wrongQuestionIds.push(q.id);
+    addToWrongBook(q.id);
+    updateStats();
+    saveSession();
+    updateTypeProgress();
+    showToast('✗ 错误', true);
+    showExplanation(q, correctAns);
+}
+
+// ── Judge Answer ──
+function answerJudge(userAnswer, btnEl) {
+    if (answered) return;
+    answered = true;
+    const q = currentQuestions[currentIndex];
+    const correctAns = q.answer === '√' ? '正确' : '错误';
+    const isCorrect = userAnswer === correctAns;
+
+    // Highlight buttons
+    const btns = document.querySelectorAll('.judge-btn');
+    btns.forEach(b => {
+        b.style.pointerEvents = 'none';
+        if (b.textContent.includes(correctAns)) b.classList.add('correct-ans');
+        if (b === btnEl && !isCorrect) b.classList.add('wrong-ans');
+    });
+    document.getElementById('questionCard').classList.add('pulse');
+
+    if (isCorrect) {
+        handleCorrect(q);
+    } else {
+        handleWrong(q, correctAns, userAnswer);
+    }
+}
+
+// ── Single Choice Answer ──
+function answerSingle(label, btnEl) {
+    if (answered) return;
+    answered = true;
+    const q = currentQuestions[currentIndex];
+    const isCorrect = label === q.answer;
+
+    // Disable all options and highlight
+    document.querySelectorAll('.opt-btn').forEach(b => {
+        b.style.pointerEvents = 'none';
+        if (b.dataset.label === q.answer) b.classList.add('reveal');
+    });
+
+    if (isCorrect) {
+        btnEl.classList.add('correct');
+        handleCorrect(q);
+    } else {
+        btnEl.classList.add('wrong');
+        handleWrong(q, q.answer, label);
+    }
+}
+
+// ── Multi Choice ──
+function toggleMultiOption(btn) {
+    if (answered) return;
+    const label = btn.dataset.label;
+    if (selectedMulti.has(label)) {
+        selectedMulti.delete(label);
+        btn.classList.remove('selected');
+    } else {
+        selectedMulti.add(label);
+        btn.classList.add('selected');
+    }
+}
+
+function answerMulti() {
+    if (answered || selectedMulti.size === 0) return;
+    answered = true;
+    const q = currentQuestions[currentIndex];
+    const userAns = [...selectedMulti].sort().join('');
+    const correctAns = q.answer;
+    const isCorrect = userAns === correctAns;
+
+    // Disable all
+    document.querySelectorAll('.opt-btn').forEach(b => {
+        b.style.pointerEvents = 'none';
+        if (correctAns.includes(b.dataset.label)) b.classList.add('reveal');
+        if (selectedMulti.has(b.dataset.label) && !correctAns.includes(b.dataset.label)) {
+            b.classList.add('wrong');
+        }
+    });
+    const submitBtn = document.getElementById('multiSubmitBtn');
+    if (submitBtn) submitBtn.disabled = true;
+
+    if (isCorrect) {
+        handleCorrect(q);
+    } else {
+        handleWrong(q, correctAns, userAns);
+    }
+}
+
+// ── Wrong Book Badge ──
+function updateWrongBadge() {
+    const btn = document.getElementById('wrongBookBtn');
+    if (!btn) return;
+    if (savedWrongIds.length > 0) {
+        btn.classList.remove('hidden');
+        btn.textContent = '📋 错题本 (' + savedWrongIds.length + ')';
+    } else {
+        btn.classList.add('hidden');
+    }
+}
+
+function openWrongBook() {
+    if (savedWrongIds.length === 0) {
+        showToast('错题本为空', true);
+        return;
+    }
+    inReview = true;
+    currentQuestions = allQuestions.filter(q => savedWrongIds.includes(q.id));
+    currentIndex = 0;
+    correctCount = 0;
+    wrongCount = 0;
+    wrongQuestionIds = [];
+    if (currentQuestions.length === 0) {
+        inReview = false;
+        app.innerHTML = '<div class="empty"><div class="icon">🎉</div><h2>错题本为空</h2><p>所有错题已清除！</p><button class="submit-btn" style="max-width:240px;margin:16px auto;" onclick="restart()">🔄 返回刷题</button></div>';
+        updateStats();
+        return;
+    }
+    updateStats();
+    render();
+}
+
+// ── Explanation (only shown for wrong answers) ──
+function showExplanation(q, correctAns) {
+    const area = document.getElementById('explanationArea');
+    if (!area) return;
+
+    let ansDisplay = correctAns;
+    if (q.type === 'single') {
+        const opt = q.options.find(o => o.label === correctAns);
+        ansDisplay = correctAns + (opt ? '. ' + opt.text : '');
+    } else if (q.type === 'multi') {
+        ansDisplay = correctAns.split('').map(l => {
+            const opt = q.options.find(o => o.label === l);
+            return l + (opt ? '. ' + opt.text : '');
+        }).join('；');
+    }
+
+    area.innerHTML = `
+    <div class="explanation">
+        <div class="label">📖 解析</div>
+        <div class="correct-answer">✅ 正确答案：${ansDisplay}</div>
+        <div style="margin-top:6px">${q.explanation || '暂无解析'}</div>
+        <button class="next-btn" onclick="goNext()">下一题 →</button>
+    </div>`;
+    area.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function goNext() {
+    currentIndex++;
+    selectedMulti.clear();
+    updateTypeProgress();
+    if (currentIndex >= currentQuestions.length) {
+        if (!inReview) clearSession();
+        renderComplete();
+    } else {
+        saveSession();
+        render();
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+}
+
+function reviewWrong() {
+    inReview = true;
+    currentQuestions = allQuestions.filter(q => wrongQuestionIds.includes(q.id));
+    currentIndex = 0;
+    correctCount = 0;
+    wrongCount = 0;
+    wrongQuestionIds = [];
+    if (currentQuestions.length === 0) {
+        inReview = false;
+        app.innerHTML = '<div class="empty"><div class="icon">🎉</div><h2>没有错题</h2><p>太棒了！全部正确！</p><button class="submit-btn" style="max-width:240px;margin:16px auto;" onclick="restart()">🔄 重新开始</button></div>';
+        updateStats();
+        return;
+    }
+    updateStats();
+    render();
+}
+
+function clearWrongBook() {
+    if (confirm('确定要清空错题本吗？所有错题记录将被删除。')) {
+        savedWrongIds = [];
+        saveWrongBook();
+        showToast('错题本已清空', false);
+    }
+}
+
+// ── Restart ──
+function restart() {
+    filterQuestions();
+    updateStats();
+    render();
+}
+
+// ── Toast ──
+let toastTimer;
+function showToast(msg, isError) {
+    toast.textContent = msg;
+    toast.className = 'toast' + (isError ? ' error' : '');
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(() => toast.classList.add('hidden'), 1500);
+}
+
+// ── PWA: Register Service Worker ──
+if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+}
+</script>
+</body>
+</html>
